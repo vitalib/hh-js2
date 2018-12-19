@@ -42,7 +42,6 @@ class StateMachine {
 
     callActions(actionName) {
         const actionsForCall = [];
-        // console.log("actionName", actionName, " ", this.currentState)
         const action = this.states[this.currentState][actionName];
         if (typeof action == "string" ) {
             this.actions[action].machine = this;
