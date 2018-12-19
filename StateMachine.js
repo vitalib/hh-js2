@@ -8,45 +8,42 @@ class StateMachine {
     }
 
     transition(event, data) {
-         new Promise((resolve) => {
-            let curState = this.states[this.currentState];
-            let handledEvent = curState["on"][event];
+            const curState = this.states[this.currentState];
+            const handledEvent = curState["on"][event];
             if (!handledEvent) {
                 throw new Error("Event '" + event + "' for state '" + this.currentState + "' doesn't exists");
             }
-            let service = handledEvent["service"];
+            const service = handledEvent["service"];
             if (service) {
                 service.machine = this;
-                service(data);
-            } else {
-                let target = curState["on"][event]["target"];
-                this.setState(target)
             }
-            resolve(this.currentState);
-        })
+            return new Promise((resolve) =>
+                resolve(this.callActions("onExit")))
+                .then(() => {
+                    if (service) {
+                        service(data);
+                    } else {
+                        let targetState = curState["on"][event]["target"];
+                        this.setState(targetState)
+                    }
+                    return this;
+                })
     }
 
     setContext(newContext) {
         Object.assign(this.context, newContext);
     }
 
-    setState(newState) {
-        new Promise((resolve, reject) => {
-            try {
-                resolve(this.callActions("onExit"));
-            } catch (e) {
-                throw e;
-            }})
-                .then(() => this.currentState = newState)
-                .then(() => this.callActions("onEntry"))
-                .catch((reason) => console.log("Error: ", reason))
+    setState(targetState) {
+         this.currentState = targetState;
+         this.callActions("onEntry");
 
     }
 
     callActions(actionName) {
-        let actionsForCall = [];
+        const actionsForCall = [];
         // console.log("actionName", actionName, " ", this.currentState)
-        let action = this.states[this.currentState][actionName];
+        const action = this.states[this.currentState][actionName];
         if (typeof action == "string" ) {
             this.actions[action].machine = this;
             actionsForCall.push(this.actions[action])
@@ -73,15 +70,13 @@ function machine(config) {
 }
 
 function useContext() {
-    let service = useContext.caller;
-    let machine = service.machine;
-    return [machine.context, (arg) => machine.setContext(arg)]
+    const service = useContext.caller;
+    return [service.machine.context, (arg) => service.machine.setContext(arg)]
 }
 
 function useState() {
-    let service = useState.caller;
-    let machine = service.machine;
-    return [machine.currentState, (arg) => machine.setState(arg)]
+    const service = useState.caller;
+    return [service.machine.currentState, (arg) => service.machine.setState(arg)]
 }
 
 module.exports = {machine, useContext, useState};

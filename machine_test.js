@@ -1,23 +1,22 @@
 const {machine, useContext, useState} = require("./StateMachine");
 
-function test1() {
+
+(function test() {
     let machine1 = machine({
         id: 1,
         context: {color: 'white'},
         initialState: "closed",
         states: {
             "closed": {
-                onEntry() {
-                    console.log("door closed")
-                },
+                onEntry: ["onDoorOpen"],
                 on: {
                     "OPEN": {
                         service: (event) => {
                             const [context, setContext] = useContext();
                             const [state, setState] = useState();
-                            Promise.resolve("Openning door")
+                            Promise.resolve("Async openning door")
                                 .then((result) => {
-                                    console.log("Async openening the door")
+                                    console.log(result)
                                     setState("opened");
                                     setContext({opened: true});
                                 })
@@ -41,7 +40,7 @@ function test1() {
                                 .then((result) => {
                                     console.log(result)
                                     setState("closed");
-                                    setContext({opened: true})
+                                    setContext({opened: false})
                                 })
                         },
                     }
@@ -50,18 +49,31 @@ function test1() {
                     console.log("door starts to close");
                 },
             },
-        }
+        },
+        actions: {
+            onDoorOpen: function(event) {
+                const [state, _] = useState();
+                console.log("Now door is " + state);
+            }
+        },
     })
+
+    function assertEqual(val1, val2) {
+        if (val1 != val2) {
+            throw new Error(val1 + " != " + val2)
+        }
+    }
+
     new Promise((resolve) =>{
-        console.log("---------Door is closed? ", "closed" == machine1.currentState)
-        resolve()})
-        .then(machine1.transition("OPEN", {opener: {name: "Vitali", age: 20}}))
-        .then((result) => console.log("---------Door is opened? ", result == machine.currentState, result))
+        assertEqual("closed", machine1.currentState); resolve()})
+        .then(() => machine1.transition("OPEN", {opener: {name: "Vitali", age: 20}}))
+        .then((aMachine) => assertEqual("opened", aMachine.currentState))
         .then(() => machine1.transition("CLOSE", {closer: {name: "Goga", age: 13}}))
-        .then((result) => console.log("---------Door is closed", result == machine.currentState, result))
+        .then((aMachine) => assertEqual("closed", aMachine.currentState))
+        .then((result) => console.log(result))
+        .then(() => machine1.transition("OPEN", {opener: {name: "Vera", age: 62}}))
+        .then((result) => assertEqual("opened", machine1.currentState))
+})()
 
 
-    setTimeout(() =>console.log(machine1), 2);
-}
 
-test1();
