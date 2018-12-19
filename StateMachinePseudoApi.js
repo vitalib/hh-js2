@@ -12,7 +12,7 @@ const vacancyMachine = machine({
         // Каждое поле — это возможное состоение
         responded: {
             // action, который нужно выполнить при входе в это состояние. Можно задавать массивом, строкой или функцией
-            onEntry: ['onStateEntry', 'sayYa']
+            onEntry: 'onStateEntry'
         },
         notResponded: {
             // action, который нужно выполнить при выходе из этого состояния. Можно задавать массивом, строкой или функцией
@@ -30,10 +30,8 @@ const vacancyMachine = machine({
                         // Позволяет получить текущий стейт и изменить его
                         const [state, setState] = useState();
                         // Поддерживаются асинхронные действия
-                        // window.fetch({method: 'post', data: {resume: event.resume, vacancyId: context.id} }).then(() => {
-                            Promise.resolve("result").then(() => {
+                        window.fetch({method: 'post', data: {resume: event.resume, vacancyId: context.id} }).then(() => {
                             // меняем состояние
-                            //     console.log("In promise");
                             setState('responded');
                             // Мержим контекст
                             setContext({completed: true}); // {id: 123, comleted: true}
@@ -51,9 +49,6 @@ const vacancyMachine = machine({
             const [state] = useState();
             console.log("now state is " + state)
         },
-        sayYa: function(event) {
-            console.log("SayYa");
-        }
 },
 /*makeResponse: (event) => {
     // both sync and async actions
@@ -63,7 +58,4 @@ const vacancyMachine = machine({
 })
 
 // Пример использования StateMachine
-// console.log(vacancyMachine);
 vacancyMachine.transition('RESPOND', {resume: {name: 'Vasya', lastName: 'Pupkin'}});
-// vacancyMachine.transition('RESPONDA', {resume: {name: 'Vasya', lastName: 'Pupkin'}});
-setTimeout(() => console.log("Final vacancy machine: ", vacancyMachine), 0);

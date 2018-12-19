@@ -1,5 +1,6 @@
 class StateMachine {
     constructor(config) {
+         this.id = config.id;
          this.context = config.context;
          this.currentState = config.initialState;
          this.states = config.states;
@@ -7,35 +8,44 @@ class StateMachine {
     }
 
     transition(event, data) {
-        let curState = this.states[this.currentState];
-        let service;
-        try {
-            service = curState["on"][event]["service"];
-        } catch (e) {
-            throw new Error("Event '" + event + "' for state '" + this.currentState + "' doesn't exists");
-        }
-        if (service) {
-            service.machine = this;
-            service(data);
-        } else {
-            let target = curState["on"][event]["target"];
-            this.setState(target)
-        }
+         new Promise((resolve) => {
+            let curState = this.states[this.currentState];
+            let handledEvent = curState["on"][event];
+            if (!handledEvent) {
+                throw new Error("Event '" + event + "' for state '" + this.currentState + "' doesn't exists");
+            }
+            let service = handledEvent["service"];
+            if (service) {
+                service.machine = this;
+                service(data);
+            } else {
+                let target = curState["on"][event]["target"];
+                this.setState(target)
+            }
+            resolve(this.currentState);
+        })
     }
 
     setContext(newContext) {
         Object.assign(this.context, newContext);
     }
 
-
     setState(newState) {
-        this.callActions("onExit");
-        this.currentState = newState;
-        this.callActions("onEntry")
+        new Promise((resolve, reject) => {
+            try {
+                resolve(this.callActions("onExit"));
+            } catch (e) {
+                throw e;
+            }})
+                .then(() => this.currentState = newState)
+                .then(() => this.callActions("onEntry"))
+                .catch((reason) => console.log("Error: ", reason))
+
     }
 
     callActions(actionName) {
         let actionsForCall = [];
+        // console.log("actionName", actionName, " ", this.currentState)
         let action = this.states[this.currentState][actionName];
         if (typeof action == "string" ) {
             this.actions[action].machine = this;
