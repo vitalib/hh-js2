@@ -70,9 +70,8 @@ const {machine, useContext, useState} = require("./StateMachine");
         .then((aMachine) => assertEqual("opened", aMachine.currentState))
         .then(() => machine1.transition("CLOSE", {closer: {name: "Goga", age: 13}}))
         .then((aMachine) => assertEqual("closed", aMachine.currentState))
-        .then((result) => console.log(result))
         .then(() => machine1.transition("OPEN", {opener: {name: "Vera", age: 62}}))
-        .then((result) => assertEqual("opened", machine1.currentState))
+        .then((aMachine) => assertEqual("opened", aMachine.currentState))
 })()
 
 
