@@ -1,6 +1,7 @@
 const {NoSuchEventException,
        NoSuchTargetException,
        NoSuchActionException} = require("./Exceptions");
+const {MachineStack} = require("./MachineStack");
 
 class StateMachine {
     constructor(config) {
@@ -11,25 +12,23 @@ class StateMachine {
          this.actions = config.actions;
     }
 
-    transition(event, data, machineArg) {
-        const curState = this.states[this.currentState];
-        const handledEvent = curState.on[event];
+    transition(event, data) {
+        const machineCurrentState = this.states[this.currentState];
+        const handledEvent = machineCurrentState.on[event];
         if (!handledEvent) {
             throw new NoSuchEventException(`Event ${event} for state` +
                 ` ${this.currentState}  doesn't exists`);
         }
-        const service = handledEvent["service"];
         return Promise.resolve(this)
             .then(() =>  {
-                if (handledEvent.hasOwnProperty('onExit')){
-                    callActions("onExit")
+                if (machineCurrentState.hasOwnProperty('onExit')){
+                    this.callActions("onExit", data)
                 }
             })
             .then(() =>  {
+                const service = handledEvent["service"];
                 if (service) {
-                    machinesStack.push(this);
-                    service(data);
-                    machinesStack.pop();
+                    this.callService(service, data)
                 } else {
                     let targetState = this.getTargetState(handledEvent);
                     this.setState(targetState);
@@ -72,7 +71,15 @@ class StateMachine {
         return this.actions[actionName];
     }
 
-    callActions(actionName) {
+
+    callService(service, data) {
+        StateMachine.machinesStack.push(this);
+        service(data);
+        StateMachine.machinesStack.pop();
+    }
+
+
+    callActions(actionName, data) {
         const actionsForCall = [];
         const action = this.states[this.currentState][actionName];
         if (typeof action == "string" ) {
@@ -89,35 +96,26 @@ class StateMachine {
             }
         }
         for (let func of actionsForCall) {
-            machinesStack.push(this);
-            func();
-            machinesStack.pop();
+            StateMachine.machinesStack.push(this);
+            func(data);
+            StateMachine.machinesStack.pop();
         }
     }
 }
 
-let machinesStack = [];
-
-function getTopMachineFromStack() {
-    let machineStackPosition = machinesStack.length - 1;
-    if (machineStackPosition < 0) {
-        throw new Error("No machines are available")
-    }
-    let machine = machinesStack[machineStackPosition];
-    return machine;
-}
+StateMachine.machinesStack = new MachineStack();
 
 function machine(config) {
     return new StateMachine(config);
 }
 
 function useContext() {
-    let machine = getTopMachineFromStack();
+    let machine = StateMachine.machinesStack.getTopElement();
     return [machine.context, arg => machine.setContext(arg)]
 }
 
 function useState() {
-    let machine = getTopMachineFromStack();
+    let machine = StateMachine.machinesStack.getTopElement();
     return [machine.currentState, (arg) => machine.setState(arg)]
 }
 

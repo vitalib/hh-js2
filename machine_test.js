@@ -184,12 +184,12 @@ function testIncorrectTargetState() {
 }
 
 function testAll() {
-    Promise.all(
-        [
+    Promise.all([
             testRegularMachine(),
             testIncorrectEvent(),
-        testIncorrectTargetState(),
-        testOneMachineChangeStatusOfOther()])
+            testIncorrectTargetState(),
+            testOneMachineChangeStatusOfOther()
+        ])
         .then(values => console.log(values))
 }
 
