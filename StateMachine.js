@@ -14,20 +14,25 @@ class StateMachine {
             throw new Error("Event '" + event + "' for state '" + this.currentState + "' doesn't exists");
         }
         const service = handledEvent["service"];
-        this.callActions("onExit");
-        if (service) {
-            machinesStack.push(this);
-            service(data);
-            machinesStack.pop();
-        } else {
-            let targetState = this.getTargetState(handledEvent);
-            this.setState(targetState);
-        }
+        return Promise.resolve(this)
+            .then(() => this.callActions("onExit"))
+            .then(() =>  {
+                if (service) {
+                    machinesStack.push(this);
+                    service(data);
+                    machinesStack.pop();
+                } else {
+                    let targetState = this.getTargetState(handledEvent);
+                    this.setState(targetState);
+                }
+                return this;
+            })
+            .catch((e) => console.log(e))
     }
 
     getTargetState(handledEvent) {
         if (handledEvent.hasOwnProperty("target")) {
-            return handledEvent[target];
+            return handledEvent["target"];
         } else {
             throw new Error("Target state for machine " + this.id + "is not specified.")
         }

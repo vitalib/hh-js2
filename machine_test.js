@@ -8,7 +8,7 @@ const {machine, useContext, useState} = require("./StateMachine");
         initialState: "closed",
         states: {
             "closed": {
-                onEntry: ["onDoorOpen"],
+                onEntry: ["onDoorClose"],
                 on: {
                     "OPEN": {
                         service: (event) => {
@@ -25,7 +25,7 @@ const {machine, useContext, useState} = require("./StateMachine");
                         }
                     }
                 },
-                onExit:[() => console.log("door starts to open"), "onDoorClose"]
+                onExit: "onDoorOpen",
             },
             "opened": {
                 onEntry() {
@@ -46,9 +46,7 @@ const {machine, useContext, useState} = require("./StateMachine");
                         },
                     }
                 },
-                onExit() {
-                    console.log("door starts to close");
-                },
+                onExit: ["onDoorClose"],
             },
         },
         actions: {
@@ -69,7 +67,7 @@ const {machine, useContext, useState} = require("./StateMachine");
         states: {
             "off": {
                 onEntry() {
-                    console.log("becomes dark")
+                    console.log("darkness is everywhere")
                 },
                 on: {
                     "SWITCH_ON": {
@@ -85,12 +83,12 @@ const {machine, useContext, useState} = require("./StateMachine");
                     }
                 },
                 onExit() {
-                    console.log("click of switcher of");
+                    console.log("become lighter");
                 }
             },
             "on": {
                 onEntry() {
-                    console.log("click of switcher on")
+                    console.log("light is everywhere")
                 },
                 on: {
                     "SWITCH_OFF": {
@@ -106,7 +104,7 @@ const {machine, useContext, useState} = require("./StateMachine");
                     }
                 },
                 onExit() {
-                    console.log("dark comes");
+                    console.log("becomes darker");
                 },
             },
         },
@@ -118,17 +116,20 @@ const {machine, useContext, useState} = require("./StateMachine");
             throw new Error(val1 + " != " + val2)
         }
     }
-    machine1.transition("OPEN", {light: machine2});
-    setTimeout(() => machine1.transition("CLOSE",  {light: machine2}), 0);
-    setTimeout(() => machine1.transition("OPEN",  {light: machine2}), 0);
-    // new Promise((resolve) =>{
-    //     assertEqual("closed", machine1.currentState); resolve("ok")})
-    //     .then(() => machine1.transition("OPEN", {light: machine2}))
-    //     .then((aMachine) => {assertEqual("opened", aMachine.currentState)})
-    //     .then(() => machine1.transition("CLOSE", {closer: {name: "Goga", age: 13}}))
-    //     .then((aMachine) => assertEqual("closed", aMachine.currentState))
-    //     .then(() => machine1.transition("OPEN", {opener: {name: "Vera", age: 62}}))
-    //     .then((aMachine) => assertEqual("opened", aMachine.currentState))
+     Promise.resolve('Ok')
+        // .then(()=> assertEqual("closed", machine1.currentState))
+        .then(() => machine1.transition("OPEN", {light: machine2}))
+        .then(() => {
+            assertEqual("opened", machine1.currentState);
+        })
+        .then(() => machine1.transition("CLOSE", {light: machine2}))
+        .then(() => {
+             assertEqual("closed", machine1.currentState);
+         })
+        .then(() => machine1.transition("OPEN", {light: machine2}))
+        .then(() => {
+             assertEqual("opened", machine1.currentState);
+         })
 })()
 
 
