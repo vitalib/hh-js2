@@ -1,4 +1,6 @@
-const {NoSuchEventException, NoSuchTargetException} = require("./Exceptions");
+const {NoSuchEventException,
+       NoSuchTargetException,
+       NoSuchActionException} = require("./Exceptions");
 
 class StateMachine {
     constructor(config) {
@@ -13,11 +15,16 @@ class StateMachine {
         const curState = this.states[this.currentState];
         const handledEvent = curState.on[event];
         if (!handledEvent) {
-            throw new NoSuchEventException(`Event  ${event}  for state ${this.currentState}  doesn't exists`);
+            throw new NoSuchEventException(`Event ${event} for state` +
+                ` ${this.currentState}  doesn't exists`);
         }
         const service = handledEvent["service"];
         return Promise.resolve(this)
-            .then(() => this.callActions("onExit"))
+            .then(() =>  {
+                if (handledEvent.hasOwnProperty('onExit')){
+                    callActions("onExit")
+                }
+            })
             .then(() =>  {
                 if (service) {
                     machinesStack.push(this);
@@ -29,8 +36,8 @@ class StateMachine {
                 }
                 return this;
             })
-            .catch((errror) => {
-                throw errror;
+            .catch((error) => {
+                throw error;
             })
     }
 
@@ -38,10 +45,10 @@ class StateMachine {
         if (handledEvent.hasOwnProperty("target")) {
             return handledEvent["target"];
         } else {
-            throw new NoSuchTargetException(`Target state for machine ${this.id} + is not specified.`)
+            throw new NoSuchTargetException(`Target state for machine` +
+             ` ${this.id} is not specified.`)
         }
     }
-
 
     setContext(newContext) {
         Object.assign(this.context, newContext);
@@ -49,25 +56,35 @@ class StateMachine {
 
     setState(targetState) {
         if (!this.states.hasOwnProperty(targetState)) {
-            throw new NoSuchTargetException(`Target state "${targetState}" for machine ${this.id} is incorrect.`)
+            throw new NoSuchTargetException(`Target state "${targetState}"` +
+             ` for machine ${this.id} is incorrect.`)
         }
          this.currentState = targetState;
-         this.callActions("onEntry");
+         if (this.states[targetState].hasOwnProperty("onEntry")) {
+             this.callActions("onEntry");
+         }
+    }
+
+    getActionByItsName(actionName) {
+        if (!this.actions.hasOwnProperty(actionName)) {
+            throw new NoSuchActionException(`Action "${action}" is unavailable`)
+        }
+        return this.actions[actionName];
     }
 
     callActions(actionName) {
         const actionsForCall = [];
         const action = this.states[this.currentState][actionName];
         if (typeof action == "string" ) {
-            actionsForCall.push(this.actions[action])
-        } else if(typeof action == "function") {
+            actionsForCall.push(this.getActionByItsName(action))
+        } else if (typeof action == "function") {
             actionsForCall.push(action)
         } else {
             for (let act of action) {
                 if (typeof act == "function") {
                     actionsForCall.push(act)
                 } else if (typeof act == "string") {
-                    actionsForCall.push(this.actions[act])
+                    actionsForCall.push(this.getActionByItsName(act));
                 }
             }
         }
