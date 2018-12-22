@@ -1,3 +1,5 @@
+const {NoSuchEventException, NoSuchTargetException} = require("./Exceptions");
+
 class StateMachine {
     constructor(config) {
          this.id = config.id;
@@ -11,7 +13,7 @@ class StateMachine {
         const curState = this.states[this.currentState];
         const handledEvent = curState.on[event];
         if (!handledEvent) {
-            throw new Error("Event '" + event + "' for state '" + this.currentState + "' doesn't exists");
+            throw new NoSuchEventException(`Event  ${event}  for state ${this.currentState}  doesn't exists`);
         }
         const service = handledEvent["service"];
         return Promise.resolve(this)
@@ -27,14 +29,16 @@ class StateMachine {
                 }
                 return this;
             })
-            .catch((e) => console.log(e))
+            .catch((errror) => {
+                throw errror;
+            })
     }
 
     getTargetState(handledEvent) {
         if (handledEvent.hasOwnProperty("target")) {
             return handledEvent["target"];
         } else {
-            throw new Error("Target state for machine " + this.id + "is not specified.")
+            throw new NoSuchTargetException(`Target state for machine ${this.id} + is not specified.`)
         }
     }
 
@@ -45,7 +49,7 @@ class StateMachine {
 
     setState(targetState) {
         if (!this.states.hasOwnProperty(targetState)) {
-            throw new Error("Incorrect target state " + targetState);
+            throw new NoSuchTargetException(`Target state "${targetState}" for machine ${this.id} is incorrect.`)
         }
          this.currentState = targetState;
          this.callActions("onEntry");
